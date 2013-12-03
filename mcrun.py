@@ -1,0 +1,119 @@
+# pymcrun - Python Minecraft server wrapper script
+# Copyright Daniel Cranston 2013.
+#
+# This file is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# This file is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this file. If not, see <http://www.gnu.org/licenses/>.
+#
+# Author's notes:
+#
+# This file can either be placed in the world directory, run via a symlink
+# placed in that directory, or passed the world name as a parameter. If the
+# name is passed as a parameter, the parent directory is assumed to be $mcDir
+#
+# minecraft_server.jar is assumed to be in the world directory.
+#
+# Note that this script will create a save directory in the parent
+# directory. Saves will be named after the world directory.
+
+import subprocess
+import sys
+
+to_run = ['/usr/bin/java', '-Xms50M', '-Xmx400M', '-jar', '/home/grey/minecraft/greycolander/minecraft_server.jar', 'nogui']
+#to_run = ["/usr/bin/java -Xms50M -Xmx400M -jar /home/grey/minecraft/greycolander/minecraft_server.jar nogui"]
+
+def run_command(command):
+   p = subprocess.Popen(command,
+                     stdout=subprocess.PIPE,
+                     stderr=subprocess.STDOUT)
+   return iter(p.stdout.readline, b'')
+
+for output_line in run_command(to_run):
+   sys.stdout.write(str(output_line))
+
+
+#if [ $PS1 ]; then
+#   printf '%s\n' "mcrun: Please run as a subprocess" >&2
+#   return 1
+#fi
+#
+#scriptName="mcrun"
+#maxWorlds=1
+#maxRam=$(( 400 / $maxWorlds ))M
+#bukkit=1 # 0 == true, 1 == false
+#
+#worldsRunning=$(pgrep -f "minecraft_server" 2> /dev/null | wc -l)
+#if [ $worldsRunning -ge $maxWorlds ]; then
+#   printf '%s\n' "$scriptName: Too many worlds running" >&2
+#   exit 1
+#fi
+#
+#if [ $2 ]; then
+#   printf '%s\n' "$scriptName: Too many args" >&2
+#   exit 1
+#fi
+#
+## Extract world directory from parameter, else assume it is the directory
+## containing this script
+#if [ $1 ]; then
+#   mcDir="$HOME/minecraft"
+#   worldDir="$mcDir/$1"
+#   world="$1"
+#else
+#   worldDir="$(dirname "$0" 2> /dev/null)"
+#   if [ "$worldDir" == "/" ]; then
+#      printf '%s\n' "$scriptName: Please run from a subfolder" >&2
+#      exit 1
+#   fi
+#   mcDir="${worldDir%/*}"
+#   world="${worldDir##*/}"
+#fi
+#saveDir="$mcDir/saves"
+#
+#if [ ! -d "$worldDir" ]; then
+#   printf '%s\n' "$scriptName: World directory does not exist" >&2
+#   exit 1
+#fi
+#cd "$worldDir" || exit 1
+#
+## Set tmux window title to "mc-$world"
+#oldWName="$(tmux display-message -p "#W" 2> /dev/null)"
+#[ "$TMUX" ] && printf '\033k%s\033\\' "mc-$world"
+#
+#if [ $bukkit == 0 ]; then
+#   java -Xms50M -Xmx$maxRam -jar craftbukkit.jar -o true
+#else
+#   java -Xms50M -Xmx$maxRam -jar minecraft_server.jar nogui
+#fi
+#exitStatus=$?
+#
+#[ "$TMUX" ] && printf '\033k%s\033\\' "$oldWName"
+#
+## Backup level to a tarball in "$saveDir/$world"
+#[ -d "$saveDir" ] || mkdir "$saveDir"
+#[ -d "$saveDir/$world" ] || mkdir "$saveDir/$world"
+#cd .. || exit 1
+#saveFile="$saveDir/$world/$world-$(date +%Y-%m-%d)-"
+#
+#i=0
+#while true; do
+#   if [ ! -e $saveFile$i.tgz ]; then
+#      printf '%s\n' "Backing up: $saveFile$i.tgz"
+#      tar -czf "$saveFile$i.tgz" "$world/"
+#      let exitStatus+=$?
+#      break
+#   fi
+#   let i+=1
+#done
+#
+#
+#exit $exitStatus

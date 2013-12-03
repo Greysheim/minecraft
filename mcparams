@@ -1,0 +1,137 @@
+#!/bin/bash
+
+# Copyright Daniel Cranston 2013.
+#
+# This file is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# This file is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this file. If not, see <http://www.gnu.org/licenses/>.
+
+# To do: auto reboot on crash
+
+scriptName="mcparams"
+
+# Default options
+# 0 == true, 1 == false
+save=0     # Save world?
+saveSet=1  # Has the save option been set by a parameter?
+savem=0    # Save more than once per day?
+savemSet=1
+savet=""   # Save target
+savetSet=1
+bukkit=1   # Run as bukkit server?
+
+# Functions
+function fHelp() {
+   printf '%s\n' "Usage: $scriptName [options] world [args...]"
+   printf '%s\n' "where options include:"
+   printf '%s\n' "    -? | -h | --help"
+   printf '%s\n' "                  print this help message"
+   printf '%s\n' "    -b | --bukkit"
+   printf '%s\n' "                  run as a bukkit server"
+   printf '%s\n' "    -s | --save"
+   printf '%s\n' "                  save world on close"
+   printf '%s\n' "                  defaults to a dated, numbered tarball in the save directory"
+   printf '%s\n' "    -o | --saveover"
+   printf '%s\n' "                  (implies -s) overwrite previous saves from the same day"
+   printf '%s\n' "                  if -t is given, overwrite FILE"
+   printf '%s\n' "    -m | --savemulti"
+   printf '%s\n' "                  (implies -s) creates a new save each run by appending a counter"
+   printf '%s\n' "    -t FILE | --saveto FILE | --saveto=FILE"
+   printf '%s\n' "                  save to FILE (implies -s)"
+   printf '%s\n' "    -f | --saveoff"
+   printf '%s\n' "                  do not save"
+   printf '%s\n' "    -x FILE | --extract FILE | --extract=FILE"
+   printf '%s\n' "                  extract world from tarball, then run"
+   printf '%s\n' "    -p PORT | --port PORT | --port=PORT"
+   printf '%s\n' "                  run  on PORT"
+}
+
+# Usage: $var=$(fSave NEWVALUE $var $varIsSet)
+# Oh wait you can't do that in bash fml
+# Guess I should switch to Python then
+# asdasdasdasdasd
+function fSave() {
+   printf '%s\n' "Setting save=$1"
+   if [[ $saveSet == 0 && $save != $1 ]]; then
+      printf '%s\n' "$scriptName: Save option conflict" >&2
+      exit 1
+   fi
+   saveSet=0
+   save=$1
+}
+function fSavem() {
+   fSave 0
+   printf '%s\n' "Setting savem=$1"
+   if [[ $savemSet == 0 && $savem != $1 ]]; then
+      printf '%s\n' "$scriptName: Save option conflict" >&2
+      exit 1
+   fi
+   savemSet=0
+   savem=$1
+}
+function fSavet() {
+   fSave 0
+   printf '%s\n' "Setting savet=$1"
+   if [[ $savetSet == 0 && $savet != $1 ]]; then
+      printf '%s\n' "$scriptName: Save option conflict" >&2
+      exit 1
+   fi
+   savetSet=0
+   savet=$1
+}
+
+# Parameters
+
+printf '%s\n' "Parsing..."
+
+for i in $@; do
+   printf '%s\n' "$i"
+   case $i in
+      --help | -h | -\?)
+         fHelp
+         exit 0
+      ;;
+      --bukkit | -b)
+         printf '%s\n' "Setting bukkit=0"
+         bukkit=0
+      ;;
+      -s | --save)
+         fSave 0
+      ;;
+      -m | --savemulti)
+         fSavem 0
+      ;;
+      -o | --saveonce)
+         fSavem 1
+      ;;
+      -t | --saveto | --saveto=*)
+         fSavet "test"
+      ;;
+      -f | --saveoff)
+         fSave 1
+      ;;
+      -*)
+         printf '%s\n' "One or more short options"
+      ;;
+      *)
+         printf '%s\n' "$scriptName: Invalid option \"$i\"" >&2
+         fHelp
+      ;;
+   esac
+done
+
+printf '%s\n' "Parsing complete"
+printf '%s\n' "save: $save"
+printf '%s\n' "savem: $savem"
+printf '%s\n' "bukkit: $bukkit"
+
+printf '%s\n' "Running..."
