@@ -40,7 +40,7 @@ def sum_lines_command(command):
         
 worlds_running = sum_lines_command("pgrep -f minecraft_server")
 
-to_run = "java -Xms50M -Xmx{0}M -jar minecraft_server.jar nogui".format(max_ram)
+to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar minecraft_server.jar nogui".format(max_ram)
 
 #Debug code
 print "script_name:", script_name

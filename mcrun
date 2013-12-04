@@ -76,9 +76,9 @@ oldWName="$(tmux display-message -p "#W" 2> /dev/null)"
 [ "$TMUX" ] && printf '\033k%s\033\\' "mc-$world"
 
 if [ $bukkit == 0 ]; then
-   java -Xms50M -Xmx$maxRam -jar craftbukkit.jar -o true
+   java -Xincgc -Xms50M -Xmx$maxRam -jar craftbukkit.jar -o true
 else
-   java -Xms50M -Xmx$maxRam -jar minecraft_server.jar nogui
+   java -Xincgc -Xms50M -Xmx$maxRam -jar minecraft_server.jar nogui
 fi
 exitStatus=$?
 
