@@ -1,4 +1,6 @@
-# pymcrun - Python Minecraft server wrapper script
+#!/usr/bin/env python
+
+# mcrun.py - Python Minecraft server wrapper script
 # Copyright Daniel Cranston 2013.
 #
 # This file is free software: you can redistribute it and/or modify
@@ -13,44 +15,49 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with this file. If not, see <http://www.gnu.org/licenses/>.
-#
-# Author's notes:
-#
-# This file can either be placed in the world directory, run via a symlink
-# placed in that directory, or passed the world name as a parameter. If the
-# name is passed as a parameter, the parent directory is assumed to be $mcDir
-#
-# minecraft_server.jar is assumed to be in the world directory.
-#
-# Note that this script will create a save directory in the parent
-# directory. Saves will be named after the world directory.
 
 import subprocess
 import sys
+import os
 
-to_run = ['/usr/bin/java', '-Xms50M', '-Xmx400M', '-jar', '/home/grey/minecraft/greycolander/minecraft_server.jar', 'nogui']
-#to_run = ["/usr/bin/java -Xms50M -Xmx400M -jar /home/grey/minecraft/greycolander/minecraft_server.jar nogui"]
+script_name = "mcrun.py"
+max_worlds = 1
+max_ram = 400 / max_worlds
+bukkit = False
 
 def run_command(command):
-   p = subprocess.Popen(command,
+    p = subprocess.Popen(command.split(),
                      stdout=subprocess.PIPE,
                      stderr=subprocess.STDOUT)
-   return iter(p.stdout.readline, b'')
+    return iter(p.stdout.readline, b'')
 
-for output_line in run_command(to_run):
-   sys.stdout.write(str(output_line))
+def interact_command(command):
+    for output_line in run_command(command):
+        sys.stdout.write(str(output_line))
 
+def sum_lines_command(command):
+    return sum(1 for _ in run_command(command))
+        
+worlds_running = sum_lines_command("pgrep -f minecraft_server")
 
-#if [ $PS1 ]; then
-#   printf '%s\n' "mcrun: Please run as a subprocess" >&2
-#   return 1
-#fi
-#
-#scriptName="mcrun"
-#maxWorlds=1
-#maxRam=$(( 400 / $maxWorlds ))M
-#bukkit=1 # 0 == true, 1 == false
-#
+to_run = "java -Xms50M -Xmx{0}M -jar minecraft_server.jar nogui".format(max_ram)
+
+#Debug code
+print "script_name:", script_name
+print "max_worlds:", max_worlds
+print "max_ram:", max_ram
+print "bukkit:", bukkit
+print "instances of minecraft server running:", worlds_running
+print "current working directory:", os.getcwd()
+print "to_run:", to_run
+
+if worlds_running >= max_worlds:
+    sys.stderr.write("{0}: Too many worlds running\n".format(script_name))
+    sys.exit(1)
+
+print "Running..."
+#interact_command(to_run)
+
 #worldsRunning=$(pgrep -f "minecraft_server" 2> /dev/null | wc -l)
 #if [ $worldsRunning -ge $maxWorlds ]; then
 #   printf '%s\n' "$scriptName: Too many worlds running" >&2
