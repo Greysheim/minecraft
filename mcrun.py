@@ -25,6 +25,11 @@ max_worlds = 1
 max_ram = 400 / max_worlds
 bukkit = False
 
+if bukkit:
+    jar_file = "craftbukkit.jar"
+else:
+    jar_file = "minecraft_server.jar"
+
 def run_command(command):
     p = subprocess.Popen(command.split(),
                      stdout=subprocess.PIPE,
@@ -40,7 +45,7 @@ def sum_lines_command(command):
         
 worlds_running = sum_lines_command("pgrep -f minecraft_server")
 
-to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar minecraft_server.jar nogui".format(max_ram)
+to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} nogui".format(max_ram, jar_file)
 
 #Debug code
 print "script_name:", script_name
