@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -- coding: utf-8 --
 
 # mcrun.py - Python Minecraft server wrapper script
 # Copyright Daniel Cranston 2013.
@@ -16,15 +17,19 @@
 # You should have received a copy of the GNU General Public License along
 # with this file. If not, see <http://www.gnu.org/licenses/>.
 
+# To do:
+#    Port from bash
+#    Parse parameters
+#    Auto reboot on crash
+
 import subprocess
 import sys
 import os
+import argparse
+import locale
 
-script_name = "mcrun.py"
-max_worlds = 2
-max_ram = 400 / max_worlds
-jars = ["minecraft_server.jar", "craftbukkit.jar"]
-jar_to_run = 1
+encoding = locale.getdefaultlocale()[1]
+if encoding is None: encoding = "utf-8"
 
 def run_command(command):
     p = subprocess.Popen(command.split(),
@@ -40,89 +45,84 @@ def sum_lines_command(command, pattern = None):
     if pattern is None:
         return sum(1 for output_line in run_command(command))
     else:
-        return sum(1 for output_line in run_command(command) if any(s in output_line for s in pattern))
+        return sum(1 for output_line in run_command(command) if any(s in output_line.decode(encoding) for s in pattern))
+
+script_name = "mcrun.py"
+max_worlds = 2
+max_ram = 400 / max_worlds
+jars = ["minecraft_server.jar", "craftbukkit.jar"]
+jars_index = 0
+save = False
+save_over = False
+save_to = None
+extract_from = None
+port = None
+world = None
+args = None
+
+parser = argparse.ArgumentParser(description="Process arguments")
+#parser.add_argument('')
+
+# Bash code: # Extract world directory from parameter, else assume it is the directory
+# Bash code: # containing this script
+# Bash code: if [ $1 ]; then
+# Bash code:    mcDir="$HOME/minecraft"
+# Bash code:    worldDir="$mcDir/$1"
+# Bash code:    world="$1"
+# Bash code: else
+# Bash code:    worldDir="$(dirname "$0" 2> /dev/null)"
+# Bash code:    if [ "$worldDir" == "/" ]; then
+# Bash code:       printf '%s\n' "$scriptName: Please run from a subfolder" >&2
+# Bash code:       exit 1
+# Bash code:    fi
+# Bash code:    mcDir="${worldDir%/*}"
+# Bash code:    world="${worldDir##*/}"
+# Bash code: fi
+# Bash code: saveDir="$mcDir/saves"
+# Bash code: 
+# Bash code: if [ ! -d "$worldDir" ]; then
+# Bash code:    printf '%s\n' "$scriptName: World directory does not exist" >&2
+# Bash code:    exit 1
+# Bash code: fi
+# Bash code: cd "$worldDir" || exit 1
+# Bash code: 
+# Bash code: # Set tmux window title to "mc-$world"
+# Bash code: oldWName="$(tmux display-message -p "#W" 2> /dev/null)"
+# Bash code: [ "$TMUX" ] && printf '\033k%s\033\\' "mc-$world"
 
 worlds_running = sum_lines_command("ps x", jars)
-
-to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} nogui".format(max_ram, jars[jar_to_run])
-
-#Debug code
-print "script_name:", script_name
-print "max_worlds:", max_worlds
-print "instances of minecraft server running:", worlds_running
-print "current working directory:", os.getcwd()
-print "to_run:", to_run
+print("instances of minecraft server running: {0}".format(worlds_running)) # Debug code
+print("current working directory: {0}".format(os.getcwd())) # Debug code
 
 if worlds_running >= max_worlds:
     sys.stderr.write("{0}: Too many worlds running\n".format(script_name))
     sys.exit(1)
 
-print "Running..."
+to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} nogui".format(max_ram, jars[jars_index])
+print("to_run: {0}".format(to_run)) # Debug code
+
+print("Running...") # Debug code
 #interact_command(to_run)
 
-#worldsRunning=$(pgrep -f "minecraft_server" 2> /dev/null | wc -l)
-#if [ $worldsRunning -ge $maxWorlds ]; then
-#   printf '%s\n' "$scriptName: Too many worlds running" >&2
-#   exit 1
-#fi
-#
-#if [ $2 ]; then
-#   printf '%s\n' "$scriptName: Too many args" >&2
-#   exit 1
-#fi
-#
-## Extract world directory from parameter, else assume it is the directory
-## containing this script
-#if [ $1 ]; then
-#   mcDir="$HOME/minecraft"
-#   worldDir="$mcDir/$1"
-#   world="$1"
-#else
-#   worldDir="$(dirname "$0" 2> /dev/null)"
-#   if [ "$worldDir" == "/" ]; then
-#      printf '%s\n' "$scriptName: Please run from a subfolder" >&2
-#      exit 1
-#   fi
-#   mcDir="${worldDir%/*}"
-#   world="${worldDir##*/}"
-#fi
-#saveDir="$mcDir/saves"
-#
-#if [ ! -d "$worldDir" ]; then
-#   printf '%s\n' "$scriptName: World directory does not exist" >&2
-#   exit 1
-#fi
-#cd "$worldDir" || exit 1
-#
-## Set tmux window title to "mc-$world"
-#oldWName="$(tmux display-message -p "#W" 2> /dev/null)"
-#[ "$TMUX" ] && printf '\033k%s\033\\' "mc-$world"
-#
-#if [ $bukkit == 0 ]; then
-#   java -Xms50M -Xmx$maxRam -jar craftbukkit.jar -o true
-#else
-#   java -Xms50M -Xmx$maxRam -jar minecraft_server.jar nogui
-#fi
-#exitStatus=$?
-#
-#[ "$TMUX" ] && printf '\033k%s\033\\' "$oldWName"
-#
-## Backup level to a tarball in "$saveDir/$world"
-#[ -d "$saveDir" ] || mkdir "$saveDir"
-#[ -d "$saveDir/$world" ] || mkdir "$saveDir/$world"
-#cd .. || exit 1
-#saveFile="$saveDir/$world/$world-$(date +%Y-%m-%d)-"
-#
-#i=0
-#while true; do
-#   if [ ! -e $saveFile$i.tgz ]; then
-#      printf '%s\n' "Backing up: $saveFile$i.tgz"
-#      tar -czf "$saveFile$i.tgz" "$world/"
-#      let exitStatus+=$?
-#      break
-#   fi
-#   let i+=1
-#done
-#
-#
-#exit $exitStatus
+# Bash code: exitStatus=$?
+# Bash code: 
+# Bash code: [ "$TMUX" ] && printf '\033k%s\033\\' "$oldWName"
+# Bash code: 
+# Bash code: # Backup level to a tarball in "$saveDir/$world"
+# Bash code: [ -d "$saveDir" ] || mkdir "$saveDir"
+# Bash code: [ -d "$saveDir/$world" ] || mkdir "$saveDir/$world"
+# Bash code: cd .. || exit 1
+# Bash code: saveFile="$saveDir/$world/$world-$(date +%Y-%m-%d)-"
+# Bash code: 
+# Bash code: i=0
+# Bash code: while true; do
+# Bash code:    if [ ! -e $saveFile$i.tgz ]; then
+# Bash code:       printf '%s\n' "Backing up: $saveFile$i.tgz"
+# Bash code:       tar -czf "$saveFile$i.tgz" "$world/"
+# Bash code:       let exitStatus+=$?
+# Bash code:       break
+# Bash code:    fi
+# Bash code:    let i+=1
+# Bash code: done
+# Bash code: 
+# Bash code: exit $exitStatus
