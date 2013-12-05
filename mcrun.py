@@ -21,14 +21,10 @@ import sys
 import os
 
 script_name = "mcrun.py"
-max_worlds = 1
+max_worlds = 2
 max_ram = 400 / max_worlds
-bukkit = False
-
-if bukkit:
-    jar_file = "craftbukkit.jar"
-else:
-    jar_file = "minecraft_server.jar"
+jars = ["minecraft_server.jar", "craftbukkit.jar"]
+jar_to_run = 1
 
 def run_command(command):
     p = subprocess.Popen(command.split(),
@@ -40,18 +36,19 @@ def interact_command(command):
     for output_line in run_command(command):
         sys.stdout.write(str(output_line))
 
-def sum_lines_command(command):
-    return sum(1 for _ in run_command(command))
-        
-worlds_running = sum_lines_command("pgrep -f minecraft_server")
+def sum_lines_command(command, pattern = None):
+    if pattern is None:
+        return sum(1 for output_line in run_command(command))
+    else:
+        return sum(1 for output_line in run_command(command) if any(s in output_line for s in pattern))
 
-to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} nogui".format(max_ram, jar_file)
+worlds_running = sum_lines_command("ps x", jars)
+
+to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} nogui".format(max_ram, jars[jar_to_run])
 
 #Debug code
 print "script_name:", script_name
 print "max_worlds:", max_worlds
-print "max_ram:", max_ram
-print "bukkit:", bukkit
 print "instances of minecraft server running:", worlds_running
 print "current working directory:", os.getcwd()
 print "to_run:", to_run

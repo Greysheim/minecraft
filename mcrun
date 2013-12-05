@@ -33,7 +33,7 @@ if [ $PS1 ]; then
 fi
 
 scriptName="mcrun"
-maxWorlds=1
+maxWorlds=2
 maxRam=$(( 400 / $maxWorlds ))M
 bukkit=1 # 0 == true, 1 == false
 
