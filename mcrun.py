@@ -30,6 +30,7 @@ import os
 import argparse
 import locale
 
+script_name = os.path.basename(__file__)
 encoding = locale.getdefaultlocale()[1]
 if encoding is None: encoding = "utf-8"
 
@@ -43,30 +44,28 @@ def interact_command(command):
     for output_line in run_command(command):
         sys.stdout.write(str(output_line))
 
-def sum_lines_command(command, pattern = None):
+def sum_lines_command(command, pattern=None):
     if pattern is None:
         return sum(1 for output_line in run_command(command))
     else:
         return sum(1 for output_line in run_command(command) 
             if any(s in output_line.decode(encoding) for s in pattern))
 
-script_name = os.path.basename(__file__)
 max_worlds = 2
 max_ram = int(400 / max_worlds) # Give 400M RAM total to worlds this script calls
 jars = ["minecraft_server.jar", "craftbukkit.jar"]
 jars_index = 0
 save = False
 save_over = False
-save_to = None
+save_to = None # Custom save directory?
 extract_from = None
 port = None
-world = None
 args_to_forward = None
 
-parser = argparse.ArgumentParser(description="Process arguments")
-parser.add_argument("world")
+parser = argparse.ArgumentParser()
+parser.add_argument("world", help="spam")
 args = parser.parse_args()
-print(args.world) # Debug code
+print("args.world: {0}".format(args.world)) # Debug code
 
 # Bash code: # Extract world directory from parameter, else assume it is the directory
 # Bash code: # containing this script
