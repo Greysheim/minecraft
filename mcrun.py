@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -- coding: utf-8 --
 
 # mcrun.py - Python Minecraft server wrapper script
@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License along
 # with this file. If not, see <http://www.gnu.org/licenses/>.
 
+###############################################################################
+
 # To do:
 #    Port from bash
 #    Parse parameters
@@ -33,8 +35,8 @@ if encoding is None: encoding = "utf-8"
 
 def run_command(command):
     p = subprocess.Popen(command.split(),
-                     stdout=subprocess.PIPE,
-                     stderr=subprocess.STDOUT)
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
 def interact_command(command):
@@ -45,11 +47,12 @@ def sum_lines_command(command, pattern = None):
     if pattern is None:
         return sum(1 for output_line in run_command(command))
     else:
-        return sum(1 for output_line in run_command(command) if any(s in output_line.decode(encoding) for s in pattern))
+        return sum(1 for output_line in run_command(command) 
+            if any(s in output_line.decode(encoding) for s in pattern))
 
-script_name = "mcrun.py"
+script_name = os.path.basename(__file__)
 max_worlds = 2
-max_ram = 400 / max_worlds
+max_ram = int(400 / max_worlds) # Give 400M RAM total to worlds this script calls
 jars = ["minecraft_server.jar", "craftbukkit.jar"]
 jars_index = 0
 save = False
@@ -58,10 +61,12 @@ save_to = None
 extract_from = None
 port = None
 world = None
-args = None
+args_to_forward = None
 
 parser = argparse.ArgumentParser(description="Process arguments")
-#parser.add_argument('')
+parser.add_argument("world")
+args = parser.parse_args()
+print(args.world) # Debug code
 
 # Bash code: # Extract world directory from parameter, else assume it is the directory
 # Bash code: # containing this script
@@ -91,13 +96,14 @@ parser = argparse.ArgumentParser(description="Process arguments")
 # Bash code: [ "$TMUX" ] && printf '\033k%s\033\\' "mc-$world"
 
 worlds_running = sum_lines_command("ps x", jars)
-print("instances of minecraft server running: {0}".format(worlds_running)) # Debug code
-print("current working directory: {0}".format(os.getcwd())) # Debug code
+#print("instances of minecraft server running: {0}".format(worlds_running)) # Debug code
+#print("current working directory: {0}".format(os.getcwd())) # Debug code
 
 if worlds_running >= max_worlds:
     sys.stderr.write("{0}: Too many worlds running\n".format(script_name))
     sys.exit(1)
 
+# To do: remove nogui option for craftbukkit.jar invocation
 to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} nogui".format(max_ram, jars[jars_index])
 print("to_run: {0}".format(to_run)) # Debug code
 
