@@ -1,6 +1,6 @@
 Minecraft Wrapper Scripts
 
-################################################################################
+###############################################################################
 
 In use and under development:
 mcrun.py (python3, compatible with python2)
@@ -12,7 +12,14 @@ Snippets for integration into other scripts:
 mcparams (bash)
 mcchat (bash)
 
-################################################################################
+###############################################################################
+
+Invocation:
+mcrun [WORLD]
+mcrun.py [options] WORLD
+
+For detailed information on mcrun.py options:
+mcrun.py -h
 
 When invoking mcrun.py, or mcrun with a world name as a parameter, the
 following directory structure is assumed:
@@ -42,5 +49,5 @@ $mcDir
    \
     $world
 
-mcrun will create the "saves" directory and subdirectories if they don't exist.
-Symlinks can be used for any of these directories or files if desired.
+mcrun / mcrun.py will create the "saves" directory and subdirectories if they
+don't exist. Symlinks can be used for any directories or files if desired.
