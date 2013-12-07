@@ -23,7 +23,7 @@ $HOME
   |\
   | $world
   |  \
-  |   minecraft_server.jar
+  |   minecraft_server.jar or craftbukkit.jar
    \
     saves
      \
@@ -35,7 +35,7 @@ $mcDir
 |\
 | $world
 |  \
-|   minecraft_server.jar
+|   minecraft_server.jar or craftbukkit.jar
 |   mcrun
  \
   saves

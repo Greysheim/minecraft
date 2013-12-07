@@ -21,8 +21,9 @@
 
 # To do:
 #    Port from bash
-#    Parse parameters
-#    Auto reboot on crash
+#    Implement options
+#    Allow script to be called from world directory without WORLD argument
+#    Allow forwarding of args
 
 import subprocess
 import sys
@@ -34,10 +35,23 @@ script_name = os.path.basename(__file__)
 encoding = locale.getdefaultlocale()[1]
 if encoding is None: encoding = "utf-8"
 
+
+class IntRange(object):
+    def __init__(self, start, stop=None):
+        if stop is None:
+            start, stop = 0, start
+        self.start, self.stop = start, stop
+    def __call__(self, value):
+        value = int(value)
+        if value < self.start or value >= self.stop:
+            raise argparse.ArgumentTypeError('value outside of range')
+        return value
+
+
 def run_command(command):
     p = subprocess.Popen(command.split(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT)
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
 def interact_command(command):
@@ -49,64 +63,102 @@ def sum_lines_command(command, pattern=None):
         return sum(1 for output_line in run_command(command))
     else:
         return sum(1 for output_line in run_command(command) 
-            if any(s in output_line.decode(encoding) for s in pattern))
+                if any(s in output_line.decode(encoding) for s in pattern))
 
 max_worlds = 2
-max_ram = int(400 / max_worlds) # Give 400M RAM total to worlds this script calls
+max_ram = int(400 / max_worlds)  # Allocate 400M RAM total
 jars = ["minecraft_server.jar", "craftbukkit.jar"]
-jars_index = 0
-save = False
-save_over = False
-save_to = None # Custom save directory?
-extract_from = None
-port = None
-args_to_forward = None
+jar_args = ["nogui", "-o true"]
+parent_dir = "{0}/minecraft".format(os.getenv("HOME"))
 
 parser = argparse.ArgumentParser()
-parser.add_argument("world", help="spam")
+parser.add_argument("world",
+        help="world directory",
+        metavar="WORLD",
+        type=str)
+parser.add_argument("-v", "--verbose",
+        help="increase output verbosity",
+        action="store_true",
+        default=False)
+parser.add_argument("-b", "--bukkit",
+        help="run as bukkit server",
+        dest="jar",
+        action="store_const",
+        const=1,
+        default=0)
+parser.add_argument("-k", "--keepalive",
+        help="auto reboot on crash",
+        action="store_true",
+        default=False)
+parser.add_argument("-s", "--save",
+        help="save world on close",
+        action="store_true",
+        default=False)
+parser.add_argument("-o", "--saveover",
+        help="overwrite save (else appends number). implies -s",
+        action="store_true",
+        default=False)
+parser.add_argument("-d", "--savedir",
+        help="save to SAVEDIR (else to saves/WORLD). implies -s",
+        type=str)
+parser.add_argument("-x", "--extract",
+        help="extract from TARBALL then run. overwrites WORLD",
+        metavar="TARBALL",
+        type=str)
+parser.add_argument("-e", "--level",
+        help="level within WORLD to run",
+        type=str)
+parser.add_argument("-p", "--port",
+        help="listening port (valid range: 1-65535)",
+        type=IntRange(1, 65536))
 args = parser.parse_args()
-print("args.world: {0}".format(args.world)) # Debug code
 
-# Bash code: # Extract world directory from parameter, else assume it is the directory
-# Bash code: # containing this script
-# Bash code: if [ $1 ]; then
-# Bash code:    mcDir="$HOME/minecraft"
-# Bash code:    worldDir="$mcDir/$1"
-# Bash code:    world="$1"
-# Bash code: else
-# Bash code:    worldDir="$(dirname "$0" 2> /dev/null)"
-# Bash code:    if [ "$worldDir" == "/" ]; then
-# Bash code:       printf '%s\n' "$scriptName: Please run from a subfolder" >&2
-# Bash code:       exit 1
-# Bash code:    fi
-# Bash code:    mcDir="${worldDir%/*}"
-# Bash code:    world="${worldDir##*/}"
-# Bash code: fi
-# Bash code: saveDir="$mcDir/saves"
-# Bash code: 
-# Bash code: if [ ! -d "$worldDir" ]; then
-# Bash code:    printf '%s\n' "$scriptName: World directory does not exist" >&2
-# Bash code:    exit 1
-# Bash code: fi
+if args.saveover or args.savedir: args.save = True
+if args.savedir is None:
+    args.savedir = "{0}/saves/{1}".format(parent_dir, args.world)
+world_dir = "{0}/{1}".format(parent_dir, args.world)
+
+if args.extract:
+    pass # tar -xvzf args.extract world_dir
+elif not os.path.isdir(world_dir):
+    pass # printf '%s\n' "$scriptName: World directory does not exist" >&2
+    # exit 1
+
 # Bash code: cd "$worldDir" || exit 1
-# Bash code: 
+
+worlds_running = sum_lines_command("ps x", jars)
+
+if worlds_running >= max_worlds:
+    sys.exit("{0}: Too many worlds running ({1})\n".format(script_name,
+            worlds_running))
+
+to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} {2}".format(max_ram,
+        jars[args.jar], jar_args[args.jar])
+
+if args.verbose:
+    print("instances of minecraft server running: {0}".format(worlds_running))
+    print("current working directory: {0}".format(os.getcwd()))
+    print("parent dir: {0}".format(parent_dir))
+    print("world: {0}".format(args.world))
+    print("keep alive: {0}".format(args.keepalive))
+    print("save: {0}".format(args.save))
+    print("save over: {0}".format(args.saveover))
+    print("save dir: {0}".format(args.savedir))
+    if args.level is None:
+        print("level: (read from server.properties)")
+    else:
+        print("level: {0}".format(args.level))
+    if args.port is None:
+        print("port: (read from server.properties)")
+    else:
+        print("port: {0}".format(args.port))
+    print("to_run: {0}".format(to_run))  # Debug code
+
 # Bash code: # Set tmux window title to "mc-$world"
 # Bash code: oldWName="$(tmux display-message -p "#W" 2> /dev/null)"
 # Bash code: [ "$TMUX" ] && printf '\033k%s\033\\' "mc-$world"
 
-worlds_running = sum_lines_command("ps x", jars)
-#print("instances of minecraft server running: {0}".format(worlds_running)) # Debug code
-#print("current working directory: {0}".format(os.getcwd())) # Debug code
-
-if worlds_running >= max_worlds:
-    sys.stderr.write("{0}: Too many worlds running\n".format(script_name))
-    sys.exit(1)
-
-# To do: remove nogui option for craftbukkit.jar invocation
-to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} nogui".format(max_ram, jars[jars_index])
-print("to_run: {0}".format(to_run)) # Debug code
-
-print("Running...") # Debug code
+print("Running...")  # Debug code
 #interact_command(to_run)
 
 # Bash code: exitStatus=$?
