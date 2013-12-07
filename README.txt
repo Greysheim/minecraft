@@ -2,20 +2,20 @@ Minecraft Wrapper Scripts
 
 ################################################################################
 
-In use (not currently being developed):
+In use and under development:
+mcrun.py (python3, compatible with python2)
+
+Usable, no longer under development:
 mcrun (bash)
 
 Snippets for integration into other scripts:
 mcparams (bash)
 mcchat (bash)
 
-Under development:
-mcrun.py (python2 / python3)
-
 ################################################################################
 
-When invoking mcrun with a world name as a parameter, the following directory
-structure is assumed:
+When invoking mcrun.py, or mcrun with a world name as a parameter, the
+following directory structure is assumed:
 
 $HOME
  \
