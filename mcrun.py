@@ -20,8 +20,7 @@
 ###############################################################################
 
 # To do:
-#    Port from bash
-#    Implement options
+#    Implement options: args.level, args.port
 #    Allow script to be called from world directory without WORLD argument
 #    Allow forwarding of args
 
@@ -30,6 +29,9 @@ import sys
 import os
 import argparse
 import locale
+import select
+import time
+import tarfile
 
 script_name = os.path.basename(__file__)
 encoding = locale.getdefaultlocale()[1]
@@ -47,23 +49,23 @@ class IntRange(object):
             raise argparse.ArgumentTypeError('value outside of range')
         return value
 
-
 def run_command(command):
     p = subprocess.Popen(command.split(),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
-
 def interact_command(command):
     for output_line in run_command(command):
-        sys.stdout.write(str(output_line))
-
+        sys.stdout.write(str(output_line.decode(encoding)))
 def sum_lines_command(command, pattern=None):
     if pattern is None:
         return sum(1 for output_line in run_command(command))
     else:
         return sum(1 for output_line in run_command(command) 
                 if any(s in output_line.decode(encoding) for s in pattern))
+def str_command(command):
+    for output_line in run_command(command):
+        return (output_line.decode(encoding))
 
 max_worlds = 2
 max_ram = int(400 / max_worlds)  # Allocate 400M RAM total
@@ -78,8 +80,9 @@ parser.add_argument("world",
         type=str)
 parser.add_argument("-v", "--verbose",
         help="increase output verbosity",
-        action="store_true",
-        default=False)
+        action="store_const",
+        const="v",
+        default="")
 parser.add_argument("-b", "--bukkit",
         help="run as bukkit server",
         dest="jar",
@@ -87,7 +90,7 @@ parser.add_argument("-b", "--bukkit",
         const=1,
         default=0)
 parser.add_argument("-k", "--keepalive",
-        help="auto reboot on crash",
+        help="auto reboot on exit",
         action="store_true",
         default=False)
 parser.add_argument("-s", "--save",
@@ -98,36 +101,18 @@ parser.add_argument("-o", "--saveover",
         help="overwrite save (else appends number). implies -s",
         action="store_true",
         default=False)
-parser.add_argument("-d", "--savedir",
-        help="save to SAVEDIR (else to saves/WORLD). implies -s",
-        type=str)
-parser.add_argument("-x", "--extract",
-        help="extract from TARBALL then run. overwrites WORLD",
-        metavar="TARBALL",
-        type=str)
 parser.add_argument("-e", "--level",
-        help="level within WORLD to run",
+        help="level within WORLD to run (NYI)",
         type=str)
 parser.add_argument("-p", "--port",
-        help="listening port (valid range: 1-65535)",
+        help="listening port (valid range: 1-65535) (NYI)",
         type=IntRange(1, 65536))
 args = parser.parse_args()
 
-if args.saveover or args.savedir: args.save = True
-if args.savedir is None:
-    args.savedir = "{0}/saves/{1}".format(parent_dir, args.world)
+if args.saveover: args.save = True
 world_dir = "{0}/{1}".format(parent_dir, args.world)
 
-if args.extract:
-    pass # tar -xvzf args.extract world_dir
-elif not os.path.isdir(world_dir):
-    pass # printf '%s\n' "$scriptName: World directory does not exist" >&2
-    # exit 1
-
-# Bash code: cd "$worldDir" || exit 1
-
 worlds_running = sum_lines_command("ps x", jars)
-
 if worlds_running >= max_worlds:
     sys.exit("{0}: Too many worlds running ({1})\n".format(script_name,
             worlds_running))
@@ -137,13 +122,11 @@ to_run = "java -Xincgc -Xms50M -Xmx{0}M -jar {1} {2}".format(max_ram,
 
 if args.verbose:
     print("instances of minecraft server running: {0}".format(worlds_running))
-    print("current working directory: {0}".format(os.getcwd()))
     print("parent dir: {0}".format(parent_dir))
     print("world: {0}".format(args.world))
     print("keep alive: {0}".format(args.keepalive))
     print("save: {0}".format(args.save))
     print("save over: {0}".format(args.saveover))
-    print("save dir: {0}".format(args.savedir))
     if args.level is None:
         print("level: (read from server.properties)")
     else:
@@ -152,34 +135,39 @@ if args.verbose:
         print("port: (read from server.properties)")
     else:
         print("port: {0}".format(args.port))
-    print("to_run: {0}".format(to_run))  # Debug code
+    print("current working directory: {0}".format(os.getcwd()))
 
-# Bash code: # Set tmux window title to "mc-$world"
-# Bash code: oldWName="$(tmux display-message -p "#W" 2> /dev/null)"
-# Bash code: [ "$TMUX" ] && printf '\033k%s\033\\' "mc-$world"
-
-print("Running...")  # Debug code
-#interact_command(to_run)
-
-# Bash code: exitStatus=$?
-# Bash code: 
-# Bash code: [ "$TMUX" ] && printf '\033k%s\033\\' "$oldWName"
-# Bash code: 
-# Bash code: # Backup level to a tarball in "$saveDir/$world"
-# Bash code: [ -d "$saveDir" ] || mkdir "$saveDir"
-# Bash code: [ -d "$saveDir/$world" ] || mkdir "$saveDir/$world"
-# Bash code: cd .. || exit 1
-# Bash code: saveFile="$saveDir/$world/$world-$(date +%Y-%m-%d)-"
-# Bash code: 
-# Bash code: i=0
-# Bash code: while true; do
-# Bash code:    if [ ! -e $saveFile$i.tgz ]; then
-# Bash code:       printf '%s\n' "Backing up: $saveFile$i.tgz"
-# Bash code:       tar -czf "$saveFile$i.tgz" "$world/"
-# Bash code:       let exitStatus+=$?
-# Bash code:       break
-# Bash code:    fi
-# Bash code:    let i+=1
-# Bash code: done
-# Bash code: 
-# Bash code: exit $exitStatus
+while True:
+    if not os.path.isdir(world_dir):
+        sys.exit("{0}: world directory does not exist".format(script_name))
+    os.chdir(world_dir)
+    if args.verbose: print("executing: {0}".format(to_run))
+    interact_command(to_run)  # Run server program
+    if args.save:
+        # Backup world to a tarball in parent_dir/saves/args.world
+        if not os.path.isdir("{0}/saves".format(parent_dir)):
+            os.makedirs("{0}/saves".format(parent_dir))
+        save_dir = "{0}/saves/{1}".format(parent_dir, args.world)
+        if not os.path.isdir(save_dir): os.makedirs(save_dir)
+        os.chdir(os.pardir)
+        today = time.strftime("%Y-%m-%d")
+        save_base = "{0}/{1}-{2}".format(save_dir, args.world, today)
+        i = 0
+        while True:
+            if args.saveover:
+                j = i + 1
+            else:
+                j = i
+            if not os.path.exists("{0}-{1}.tgz".format(save_base, j)):
+                save_file = "{0}-{1}.tgz".format(save_base, i)
+                break
+            i += 1
+        print("backing up: {0}".format(save_file))
+        with tarfile.open(save_file, "w:gz") as tar:
+            tar.add(world_dir, arcname=os.path.basename(args.world))
+    if not args.keepalive: break
+    print("restarting in 5 seconds (press enter to cancel)")
+    i, _, _ = select.select( [sys.stdin], [], [], 5 )
+    if (i):
+        sys.stdin.readline()
+        break
