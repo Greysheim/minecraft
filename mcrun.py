@@ -67,7 +67,7 @@ def str_command(command):
     for output_line in run_command(command):
         return (output_line.decode(encoding))
 
-max_worlds = 2
+max_worlds = 1
 max_ram = int(400 / max_worlds)  # Allocate 400M RAM total
 jars = ["minecraft_server.jar", "craftbukkit.jar"]
 jar_args = ["nogui", "-o true"]
