@@ -20,6 +20,9 @@
 ###############################################################################
 
 # To do:
+#    Read max_ram, max_worlds from config file
+#        Alternatively, allow manual specification of RAM values
+#    Combine jars and jar_args into a nested list
 #    Implement options: args.level, args.port
 #    Allow script to be called from world directory without WORLD argument
 #    Allow forwarding of args
@@ -67,8 +70,9 @@ def str_command(command):
     for output_line in run_command(command):
         return (output_line.decode(encoding))
 
-max_worlds = 1
+max_worlds = 2
 max_ram = int(400 / max_worlds)  # Allocate 400M RAM total
+# jars = [["minecraft_server.jar", "nogui"], ["craftbukkit.jar", "-o true"]]
 jars = ["minecraft_server.jar", "craftbukkit.jar"]
 jar_args = ["nogui", "-o true"]
 parent_dir = "{0}/minecraft".format(os.getenv("HOME"))
