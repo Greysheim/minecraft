@@ -116,11 +116,11 @@ args = parser.parse_args()
 
 if args.saveover: args.save = True
 if args.test: args.verbose = True
-world_dir = "{0}/{1}".format(parent_dir, args.world)
+world_dir = "{}/{}".format(parent_dir, args.world)
 
 worlds_running = running_processes(jars.names)
 if worlds_running >= max_worlds:
-    sys.exit("{0}: Too many worlds running ({1})\n".format(script_name,
+    sys.exit("{}: Too many worlds running ({})\n".format(script_name,
             worlds_running))
 
 to_run = ["java", "-Xincgc", "-Xms50M", "-Xmx{}M".format(max_ram), "-jar"]
@@ -154,19 +154,17 @@ while True:
         # Backup world to a tarball in parent_dir/saves/args.world
         if not os.path.isdir("{}/saves".format(parent_dir)):
             os.makedirs("{}/saves".format(parent_dir))
-        save_dir = "{0}/saves/{1}".format(parent_dir, args.world)
+        save_dir = "{}/saves/{}".format(parent_dir, args.world)
         if not os.path.isdir(save_dir): os.makedirs(save_dir)
         os.chdir(os.pardir)
         today = time.strftime("%Y-%m-%d")
-        save_base = "{0}/{1}-{2}".format(save_dir, args.world, today)
+        save_base = "{}/{}-{}".format(save_dir, args.world, today)
         i = 0
         while True:
-            if args.saveover:
-                j = i + 1
-            else:
-                j = i
-            if not os.path.exists("{0}-{1}.tgz".format(save_base, j)):
-                save_file = "{0}-{1}.tgz".format(save_base, i)
+            j = i
+            if args.saveover: j += 1
+            if not os.path.exists("{}-{}.tgz".format(save_base, j)):
+                save_file = "{}-{}.tgz".format(save_base, i)
                 break
             i += 1
         print("backing up: {}".format(save_file))
