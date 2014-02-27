@@ -123,7 +123,8 @@ if worlds_running >= max_worlds:
     sys.exit("{}: Too many worlds running ({})\n".format(script_name,
             worlds_running))
 
-to_run = ["java", "-Xincgc", "-Xms50M", "-Xmx{}M".format(max_ram), "-jar"]
+to_run = ["java", "-Xms50M", "-Xmx{}M".format(max_ram), "-jar"]
+#to_run += ["-Xincgc"]
 to_run += jars.j[args.jar]
 
 if args.verbose:
