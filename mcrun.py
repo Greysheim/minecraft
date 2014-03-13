@@ -2,7 +2,7 @@
 # -- coding: utf-8 --
 
 # mcrun.py - Python Minecraft server wrapper script
-# Copyright Daniel Cranston 2013.
+# Copyright Daniel Cranston 2013-2014.
 #
 # This file is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -158,14 +158,14 @@ while True:
         save_dir = "{}/saves/{}".format(parent_dir, args.world)
         if not os.path.isdir(save_dir): os.makedirs(save_dir)
         os.chdir(os.pardir)
-        today = time.strftime("%Y-%m-%d")
-        save_base = "{}/{}-{}".format(save_dir, args.world, today)
+        save_base = "{}/{}-{}-{{}}.tgz".format(save_dir, args.world,
+                time.strftime("%Y-%m-%d"))
         i = 0
         while True:
             j = i
             if args.saveover: j += 1
-            if not os.path.exists("{}-{}.tgz".format(save_base, j)):
-                save_file = "{}-{}.tgz".format(save_base, i)
+            if not os.path.exists(save_base.format(j)):
+                save_file = save_base.format(i)
                 break
             i += 1
         print("backing up: {}".format(save_file))
