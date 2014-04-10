@@ -49,9 +49,7 @@ class IntRange(object):
 class JarList(object):
     def __init__(self, jars):
         self.jars = jars
-        self.names = []
-        for i in self.jars:
-            self.names += [i[0]]
+        self.names = [i[0] for i in self.jars]
     def __call__(self, idx):
         return self.jars[idx]
 
