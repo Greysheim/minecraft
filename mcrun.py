@@ -76,9 +76,9 @@ save_dir = "{}/saves".format(minecraft_dir)
 # Seconds to wait before restart when args.keepalive option is True
 restart_wait = 5
 
-###### Methods ######
+###### Functions ######
 
-### Command methods ###
+### Command functions ###
 def run_command(command):
     p = subprocess.Popen(command,
             stdout=subprocess.PIPE,
@@ -142,7 +142,7 @@ def parse_args(parser):
         args.verbose = True
     return args
 
-### Print variables method (used in verbose option, for debugging) ###
+### Print variables function (used in verbose option, for debugging) ###
 def print_variables():
     print("encoding: {}".format(encoding))
     print("instances of minecraft server running: {}".format(worlds_running))
