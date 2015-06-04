@@ -2,10 +2,8 @@ Minecraft Wrapper Scripts
 
 ###############################################################################
 
-In use and under development:
-mcrun.py (python3, compatible with python2)
-
 Usable, no longer under development:
+mcrun.py (python3, compatible with python2)
 mcrun (bash)
 
 Snippets for integration into other scripts:
